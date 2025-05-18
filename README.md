@@ -42,3 +42,18 @@ An advanced Connect Four implementation featuring multiple AI opponents with ada
    ```bash
    git clone https://github.com/ArtwellMa/AI-Powered-ConnectFour-Game.git
    cd AI-Powered-ConnectFour-Game
+2. Create and activate a virtual environment:
+python -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+
+4. Install dependencies:
+pip install -r requirements.txt
+
+6. Set up environment variables:
+ cp .env.example .env
+# Edit .env with your Deepseek API key and secret key
+
+5. Run the application:
+ python run.py
+7. Open your browser to:
+   127.0.0.1:5000
