@@ -1,6 +1,6 @@
 # AI-Powered Connect Four
 
-![Game Screenshot](/app/static/images/screenshot.png)
+![Game Screenshot](/app/static/UI.png)
 
 An advanced Connect Four implementation featuring multiple AI opponents with adaptive difficulty, performance metrics, and visualization tools.
 
