@@ -40,5 +40,5 @@ An advanced Connect Four implementation featuring multiple AI opponents with ada
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/ai-connect-four.git
-   cd ai-connect-four
+   git clone https://github.com/ArtwellMa/AI-Powered-ConnectFour-Game.git
+   cd AI-Powered-ConnectFour-Game
