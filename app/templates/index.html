@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="welcome floating">
+    <h2>Welcome to AI-Powered Connect Four!</h2>
+    <p>Please <a href="{{ url_for('auth.login') }}">login</a> or <a href="{{ url_for('auth.register') }}">register</a> to play.</p>
+</div>
+{% endblock %}

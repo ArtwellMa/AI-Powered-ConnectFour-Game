@@ -1,0 +1,469 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="game-container">
+    
+    <h2>AI-Powered Connect Four</h2>
+
+    <div class="game-settings">
+        <div class="sound-controls">
+            <label for="sound-toggle">Sound:</label>
+            <input type="checkbox" id="sound-toggle" checked>
+        </div>
+
+        <div class="difficulty-controls">
+            <label for="difficulty">Difficulty:</label>
+            <select id="difficulty">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="hard">Hard</option>
+                <option value="expert">Expert</option>
+            </select>
+        </div>
+
+        <div class="algorithm-controls">
+            <label for="algorithm">AI:</label>
+            <select id="algorithm">
+                <option value="random">Random</option>
+                <option value="minimax" selected>Minimax</option>
+                <option value="deepseek">Deepseek</option>
+                <option value="mcts">Monte Carlo</option>
+            </select>
+            <div class="api-status">
+                <span id="deepseek-status" class="status-checking">
+                    <span class="status-icon">⟳</span>
+                    <span class="status-text">Connecting to AI...</span>
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="metrics-panel">
+        <h3><i class=""></i> AI Performance Metrics</h3>
+        <div class="metrics-controls">
+            <button id="refresh-metrics">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button id="reset-metrics">
+                <i class="fas fa-trash-alt"></i> Reset
+            </button>
+            <button id="export-metrics">
+                <i class="fas fa-file-export"></i> Export
+            </button>
+            <select id="time-range">
+                <option value="1h">Last Hour</option>
+                <option value="24h" selected>Last 24 Hours</option>
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
+            </select>
+        </div>
+        <div class="metrics-grid">
+            <div class="metrics-header">
+                <span>Algorithm</span>
+                <span>Difficulty</span>
+                <span>Moves</span>
+                <span>Avg Time</span>
+                <span>Win Rate</span>
+                <span>Performance</span>
+            </div>
+            <div class="metrics-body" id="metrics-data">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+    <div class="scoreboard">
+        <div class="player-timer active">
+            <span id="player-score">Player: 0</span>
+            <div class="countdown-bar" id="player-countdown"></div>
+        </div>
+        <div class="ai-timer">
+            <div class="countdown-bar" id="ai-countdown"></div>
+            <span id="ai-score">AI: 0</span>
+        </div>
+    </div>
+
+    
+    <div class="board">
+        {% for row in range(6) %}
+            {% for col in range(7) %}
+                <div class="cell" data-row="{{ row }}" data-col="{{ col }}">
+                    <!-- Cell numbers removed for cleaner look -->
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    <div class="controls">
+        <button id="reset">Reset Game</button>
+        <button id="undo">Undo Move</button>
+    </div>
+
+    <div class="ai-visualization">
+        <button id="toggle-visualization">Show AI Heatmap</button>
+        <div class="heatmap-key" style="opacity: 0;">
+            <span>0%</span>
+            <div class="heatmap-gradient"></div>
+            <span>100%</span>
+        </div>
+    </div>
+
+</div>
+
+
+<style>
+    .metrics-panel {
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .metrics-header {
+        font-weight: bold;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 5px;
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        align-items: center;
+    }
+
+    .metrics-body {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+        align-items: center;
+    }
+
+    .metric-item {
+        padding: 6px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .metric-item.algorithm {
+        font-weight: bold;
+        color: #4A90E2;
+    }
+
+    .metric-item.difficulty {
+        color: #FFC107;
+    }
+
+    .metric-item.value {
+        text-align: center;
+    }
+
+    .performance-bar-container {
+        height: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 5px;
+        overflow: hidden;
+    }
+
+    .performance-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #FF6F61, #4A90E2);
+        transition: width 0.5s ease;
+    }
+
+    /* Metrics Control Buttons */
+    .metrics-controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .metrics-controls button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #4A90E2 0%, #2E1A47 100%);
+        color: white;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .metrics-controls button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        background: linear-gradient(135deg, #5a9cec 0%, #3d2461 100%);
+    }
+
+    .metrics-controls button:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 3px rgba(0,0,0,0.2);
+    }
+
+    .metrics-controls button i {
+        font-size: 14px;
+    }
+
+    /* Time Range Selector */
+    .metrics-controls select {
+        padding: 8px 12px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.3);
+        background: rgba(0,0,0,0.5);
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .metrics-controls select:hover {
+        background: rgba(0,0,0,0.6);
+    }
+
+    /* Button Specific Styles */
+    #refresh-metrics {
+        background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+    }
+
+    #reset-metrics {
+        background: linear-gradient(135deg, #FF5722 0%, #C62828 100%);
+    }
+
+    #export-metrics {
+        background: linear-gradient(135deg, #9C27B0 0%, #6A1B9A 100%);
+    }
+
+    /* Loading State */
+    button.loading {
+        position: relative;
+        pointer-events: none;
+    }
+
+    button.loading::after {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        margin: auto;
+        border: 3px solid transparent;
+        border-top-color: white;
+        border-radius: 50%;
+        animation: button-loading-spinner 1s linear infinite;
+    }
+
+    @keyframes button-loading-spinner {
+        from { transform: rotate(0turn); }
+        to { transform: rotate(1turn); }
+    }
+
+</style>
+
+
+<style>
+    .ai-visualization {
+        text-align: center;
+        margin: 15px 0;
+    }
+
+    #toggle-visualization {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    #toggle-visualization:hover {
+        background: rgba(255,255,255,0.2);
+    }
+
+    .heatmap-key {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 8px;
+        font-size: 0.8rem;
+        /* opacity: 0; */ /* Controlled by inline style now */
+        transition: opacity 0.3s ease;
+    }
+
+    .heatmap-gradient {
+        width: 100px;
+        height: 15px;
+        background: linear-gradient(to right, #2E1A47, #4A90E2); /* Low to High probability */
+        border-radius: 3px;
+    }
+
+    /* Heatmap cell overlay using ::after */
+    .cell::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 0; /* Start at 0 height */
+        background: rgba(74, 144, 226, 0); /* Start transparent blue */
+        z-index: 0; /* Below token */
+        transition: height 0.4s ease, background-color 0.4s ease; /* Animate height and color */
+        border-radius: 0 0 50% 50%; /* Rounded bottom */
+        pointer-events: none; /* Don't block clicks */
+    }
+
+    .heatmap-visible .cell::after {
+        height: calc(var(--ai-score, 0) * 1%);
+        background-color: rgba(74, 144, 226, 0.4); /* Semi-transparent blue */
+    }
+
+    /* Optional: Highlight on hover when heatmap is visible */
+    .heatmap-visible .cell:hover::after {
+        background-color: rgba(74, 144, 226, 0.6); /* Darker blue on hover */
+         /* Simple scale effect on hover */
+         transform: scaleY(1.05) translateY(-2px);
+    }
+
+    /* API Status styles */
+    .api-status span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(5px);
+        transition: all 0.3s ease;
+        font-size: 0.8rem;
+    }
+    .status-checking { color: #FFC107; border-left: 2px solid #FFC107; }
+    .status-connected { color: #4CAF50; border-left: 2px solid #4CAF50; }
+    .status-error { color: #F44336; border-left: 2px solid #F44336; }
+    .status-icon { font-weight: bold; font-size: 0.9em; }
+    .status-text { font-size: 0.9em; }
+
+    /* Thinking Indicator */
+    .ai-thinking-indicator {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.85);
+        color: white;
+        padding: 15px 30px;
+        border-radius: 10px;
+        font-size: 1.2rem;
+        z-index: 1000;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        animation: pulseThink 1.5s infinite;
+        pointer-events: none;
+    }
+    @keyframes pulseThink { /* Renamed to avoid conflict if 'pulse' is used elsewhere */
+        0% { transform: translate(-50%, -50%) scale(0.98); opacity: 0.9; }
+        50% { transform: translate(-50%, -50%) scale(1.02); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(0.98); opacity: 0.9; }
+    }
+
+    /* Board state styles */
+     .board.game-over {
+         opacity: 0.6;
+         /* filter: grayscale(50%); */ /* Optional: make it look inactive */
+     }
+
+</style>
+
+<!-- Sound paths -->
+<script>
+    const soundPaths = {
+        drop: "{{ url_for('static', filename='sounds/drop.wav') }}",
+        win: "{{ url_for('static', filename='sounds/win.wav') }}",
+        reset: "{{ url_for('static', filename='sounds/reset.wav') }}",
+        error: "{{ url_for('static', filename='sounds/error.wav') }}"
+    };
+</script>
+
+<script>
+    // Deepseek API Status Check - Updated Version
+    document.addEventListener('DOMContentLoaded', () => {
+        const statusElement = document.getElementById('deepseek-status');
+        const statusIcon = statusElement.querySelector('.status-icon');
+        const statusText = statusElement.querySelector('.status-text');
+        const deepseekOption = document.querySelector('#algorithm option[value="deepseek"]');
+
+        // Function to update status display
+        function updateStatus(state, icon, text) {
+            statusElement.className = `status-${state}`;
+            statusIcon.textContent = icon;
+            statusText.textContent = text;
+            if (deepseekOption) {
+                deepseekOption.disabled = (state === 'error');
+                deepseekOption.textContent = state === 'connected' ? 'Deepseek' : 'Deepseek (Offline)';
+            }
+        }
+
+        updateStatus('checking', '⟳', 'Connecting to AI...');
+
+        // First try the test endpoint
+        fetch("{{ url_for('game.test_deepseek') }}")
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.message || `HTTP error! status: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    updateStatus('connected', '✓', 'AI Connected');
+                    
+                    // Additional verification - try a simple move request
+                    return fetch("{{ url_for('game.get_ai_move_api') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            board: Array(6).fill(null).map(() => Array(7).fill(null)),
+                            algorithm: 'deepseek',
+                            difficulty: 'medium'
+                        })
+                    });
+                } else {
+                    throw new Error(data.message || 'API test failed');
+                }
+            })
+            .then(moveResponse => {
+                if (!moveResponse.ok) {
+                    throw new Error('Move test failed');
+                }
+                // Final confirmation
+                updateStatus('connected', '✓', 'AI Ready');
+            })
+            .catch(error => {
+                console.error('API test failed:', error);
+                updateStatus('error', '✗', `AI Offline: ${error.message}`);
+            });
+    });
+</script>
+
+<!-- Link to the main JS file -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% endblock %}

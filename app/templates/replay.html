@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="game-container">
+    <h2>Game Replay</h2>
+    <div class="replay-controls">
+        <button id="prev">Previous Move</button>
+        <button id="next">Next Move</button>
+        <button id="play">Play All</button>
+    </div>
+    <div class="board" id="replay-board">
+        {% for row in range(6) %}
+            {% for col in range(7) %}
+                <div class="cell" data-row="{{ row }}" data-col="{{ col }}"></div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+    <div class="replay-info">
+        <p>Game ID: {{ game_id }}</p>
+        <p id="move-counter">Move: 0/0</p>
+    </div>
+</div>
+
+<script>
+    let currentMoveIndex = 0;
+    let totalMoves = 0;
+    let replayMoves = [];
+    let gameActive = true;
+    let isAnimating = false;
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        fetch(`/api/load_replay/${{ game_id }}`)
+            .then(response => response.json())
+            .then(data => {
+                replayMoves = data.moves;
+                totalMoves = replayMoves.length;
+                updateMoveCounter();
+            });
+        
+        document.getElementById('prev').addEventListener('click', () => {
+            if (currentMoveIndex > 0 && !isAnimating) {
+                currentMoveIndex--;
+                updateBoard();
+            }
+        });
+        
+        document.getElementById('next').addEventListener('click', () => {
+            if (currentMoveIndex < totalMoves && !isAnimating) {
+                currentMoveIndex++;
+                updateBoard();
+            }
+        });
+        
+        document.getElementById('play').addEventListener('click', () => {
+            if (!gameActive || isAnimating) return;
+            
+            gameActive = false;
+            let interval = setInterval(() => {
+                if (currentMoveIndex < totalMoves) {
+                    currentMoveIndex++;
+                    updateBoard();
+                } else {
+                    clearInterval(interval);
+                    gameActive = true;
+                }
+            }, 1000);
+        });
+    });
+    
+    function updateBoard() {
+        const board = document.getElementById('replay-board');
+        const cells = board.querySelectorAll('.cell');
+        cells.forEach(cell => {
+            cell.innerHTML = '';
+            cell.style.backgroundColor = '';
+        });
+        
+        if (currentMoveIndex === 0) return;
+        
+        for (let i = 0; i < currentMoveIndex; i++) {
+            const move = replayMoves[i];
+            const col = move.col;
+            const row = move.row;
+            const player = move.player;
+            
+            const cell = board.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            if (cell) {
+                const token = document.createElement('div');
+                token.className = `token ${player}`;
+                cell.appendChild(token);
+            }
+        }
+        
+        updateMoveCounter();
+    }
+    
+    function updateMoveCounter() {
+        document.getElementById('move-counter').textContent = 
+            `Move: ${currentMoveIndex} / ${totalMoves}`;
+    }
+</script>
+{% endblock %}

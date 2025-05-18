@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Connect Four</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    {% if not request.path.startswith('/game') %}
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    {% endif %}
+</head>
+<body class="{% if request.path.startswith('/game') %}game-page{% endif %}">
+    {% if not request.path.startswith('/game') %}
+    <div id="particles-js"></div>
+    {% endif %}
+    
+    <header>
+        <h1>AI-Powered Connect Four</h1>
+        <nav>
+            {% if current_user.is_authenticated %}
+                <div class="profile">
+                    <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_picture) }}" alt="Profile Picture" class="profile-pic">
+                    <a href="{{ url_for('auth.logout') }}">Logout</a>
+                </div>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}">Login</a>
+                <a href="{{ url_for('auth.register') }}">Register</a>
+            {% endif %}
+        </nav>
+    </header>
+    
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    {% if not request.path.startswith('/game') %}
+    <script>
+        particlesJS.load('particles-js', '{{ url_for("static", filename="particles.json") }}', function() {
+            console.log('Particles.js loaded!');
+        });
+    </script>
+    {% endif %}
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
